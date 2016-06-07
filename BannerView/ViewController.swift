@@ -23,6 +23,9 @@ class ViewController: UIViewController {
             }
             
             bannerView.images = images
+            
+            bannerView.pageControl.currentPageIndicatorTintColor = UIColor.purpleColor()
+            bannerView.pageControl.pageIndicatorTintColor = UIColor.blueColor()
         }
         
     }
@@ -37,6 +40,11 @@ class ViewController: UIViewController {
     override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
         
         
+        if bannerView.scrollDirection == .Horizontal {
+            bannerView.scrollDirection = .Vertical
+        }else {
+            bannerView.scrollDirection = .Horizontal
+        }
         
         
     }

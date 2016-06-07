@@ -17,7 +17,89 @@ public extension UIView {
 }
 
 public class BannerView: UIView {
-
+    
+    public var images = [UIImage]() {
+        didSet {
+            pageControl.numberOfPages = images.count
+            pageControl.hidesForSinglePage = !carouselForSinglePage
+            collectionView.reloadData()
+            scrollToMiddle()
+        }
+    }
+    
+    public var duration: NSTimeInterval = 2.5
+    
+    public var carouselForSinglePage = false {
+        didSet {
+            collectionView.reloadData()
+        }
+    }
+    
+    public var carouselAnimate = true
+    
+    private var timer: NSTimer?
+    
+    @objc private func addTimer() {
+        
+        if let _ = timer {
+            return
+        }
+        
+        timer = NSTimer(timeInterval: duration, target: self, selector: #selector(BannerView.carousel), userInfo: nil, repeats: true)
+        NSRunLoop.currentRunLoop().addTimer(timer!, forMode: NSRunLoopCommonModes)
+        timer?.fire()
+    }
+    
+    private func removeTimer() {
+        
+        guard let _ = timer else {
+            return
+        }
+        timer?.invalidate()
+        timer = nil
+    }
+    
+    
+    @objc private func carousel() {
+        
+        guard let cell = collectionView.visibleCells().first else {
+            return
+        }
+        
+        
+        guard let indexPath = collectionView.indexPathForCell(cell) else {
+            return
+        }
+        
+        if !carouselAnimate {
+            
+            removeTimer()
+        }
+        
+        let item  = indexPath.item + 1
+        if item >= images.count  {
+            let middleIndexPath = NSIndexPath(forItem:  0 , inSection:  self.middleSection + 1)
+            self.collectionView.scrollToItemAtIndexPath(middleIndexPath, atScrollPosition: .None, animated: true)
+            pageControl.currentPage = 0
+            self.performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.25)
+            return
+            
+        }
+        
+        let middleIndexPath = NSIndexPath(forItem:  item , inSection:  self.middleSection)
+        self.collectionView.scrollToItemAtIndexPath(middleIndexPath, atScrollPosition: .None, animated: true)
+        pageControl.currentPage = item
+    }
+    
+    public var scrollDirection: UICollectionViewScrollDirection = .Horizontal {
+        didSet {
+            let cell = collectionView.visibleCells().first
+            let indexPath = collectionView.indexPathForCell(cell!)
+            layout.scrollDirection = scrollDirection
+            collectionView.reloadData()
+            collectionView.scrollToItemAtIndexPath(indexPath!, atScrollPosition: .None, animated: false)
+        }
+    }
     
     private(set) lazy var pageControl: UIPageControl = {
        let pageControl =  UIPageControl()
@@ -47,17 +129,30 @@ public class BannerView: UIView {
         private func initUI() {
             let views = ["imageView":imageView]
             addSubview(imageView)
-            let vhConstraints = [NSLayoutConstraint.constraintsWithVisualFormat("V:|[imageView]|", options: [], metrics: nil, views: views),NSLayoutConstraint.constraintsWithVisualFormat("H:|[imageView]|", options: [], metrics: nil, views: views)].flatMap { (constraints) -> [NSLayoutConstraint] in
+            let vhConstraints = [
+                NSLayoutConstraint.constraintsWithVisualFormat("V:|[imageView]|", options: [], metrics: nil, views: views),
+                NSLayoutConstraint.constraintsWithVisualFormat("H:|[imageView]|", options: [], metrics: nil, views: views)
+            ].flatMap { (constraints) -> [NSLayoutConstraint] in
                 return constraints
             }
             NSLayoutConstraint.activateConstraints(vhConstraints)
             
         }
-        
+
     }
-   
     
-    private static let reuseIdentifier = String(BannerViewCell)
+    private static let carouselSection = 3
+    private static let section = 1
+    private static  let fristItemInMiddleSection = 0
+    private static  let reuseIdentifier = String(BannerViewCell)
+    private  var section: Int {
+       return (carouselForSinglePage || images.count > self.dynamicType.section) ?
+            self.dynamicType.carouselSection : self.dynamicType.section
+    }
+    private  var middleSection: Int {
+        
+        return (section == self.dynamicType.section) ? self.dynamicType.section : (section / 2)
+    }
     
     private lazy var collectionView: UICollectionView = { [unowned self] in
     
@@ -76,22 +171,14 @@ public class BannerView: UIView {
         view.translatesAutoresizingMaskIntoConstraints = false
         view.registerClass(BannerViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
         return view
-        
     }()
     
     
-    static private let section  = 3
-    static private let middleSection = 1
-    static private let fristItemInMiddleSection = 0
-    
-    public var images = [UIImage]() {
-        didSet {
-            pageControl.numberOfPages = images.count
-            pageControl.hidesForSinglePage = true
-            collectionView.reloadData()
-            scrollToMiddle()
-        }
+    private var layout: UICollectionViewFlowLayout {
+        
+        return collectionView.collectionViewLayout as! UICollectionViewFlowLayout
     }
+    
     
     typealias DoSomething = Void ->Void
     
@@ -104,12 +191,9 @@ public class BannerView: UIView {
     
     
     @objc private func scrollToMiddle() {
-        if images.count > 1 {
-            let indexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection, inSection:  self.dynamicType.middleSection)
-            
-            collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: false)
-        }
         
+        let indexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection, inSection:  middleSection)
+        collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: false)
     }
     
     override public func willMoveToSuperview(newSuperview: UIView?) {
@@ -117,7 +201,10 @@ public class BannerView: UIView {
             let views = ["collectionView":collectionView]
             addSubview(collectionView)
             // flatMap 将二维数据转为一维数组
-            let vhConstraints = [NSLayoutConstraint.constraintsWithVisualFormat("V:|[collectionView]|", options: [], metrics: nil, views: views),NSLayoutConstraint.constraintsWithVisualFormat("H:|[collectionView]|", options: [], metrics: nil, views: views)].flatMap { (constraints) -> [NSLayoutConstraint] in
+            let vhConstraints = [
+                NSLayoutConstraint.constraintsWithVisualFormat("V:|[collectionView]|", options: [], metrics: nil, views: views),
+                NSLayoutConstraint.constraintsWithVisualFormat("H:|[collectionView]|", options: [], metrics: nil, views: views)
+                ].flatMap { (constraints) -> [NSLayoutConstraint] in
                 return constraints
             }
             NSLayoutConstraint.activateConstraints(vhConstraints)
@@ -134,6 +221,7 @@ public class BannerView: UIView {
     public override func didMoveToSuperview() {
         
         self .performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.01)
+        addTimer()
     }
     
     public override func layoutSubviews() {
@@ -151,7 +239,7 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
     
     public func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
         
-        return images.count == 1 ? 1: self.dynamicType.section;
+        return section;
     }
     
     
@@ -159,7 +247,6 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
         
         return images.count
     }
-    
     
     public func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCellWithReuseIdentifier(self.dynamicType.reuseIdentifier, forIndexPath: indexPath) as?  BannerViewCell else {
@@ -176,7 +263,6 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
     
     public func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
         
-        
         if images.count == 1 {
             return
         }
@@ -191,11 +277,21 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
                 return
             }
             self.pageControl.currentPage = indexPath.item
-            let middleIndexPath = NSIndexPath(forItem:  indexPath.item, inSection:  self.dynamicType.middleSection)
+            let middleIndexPath = NSIndexPath(forItem:  indexPath.item, inSection:  self.middleSection)
             self.collectionView.scrollToItemAtIndexPath(middleIndexPath, atScrollPosition: .None, animated: false)
         }
         
     }
     
+    public func scrollViewWillBeginDragging(scrollView: UIScrollView) {
+        
+        removeTimer()
+    }
+    
+    public func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        
+        NSObject .cancelPreviousPerformRequestsWithTarget(self, selector: #selector(BannerView.addTimer), object: nil)
+        self.performSelector(#selector(BannerView.addTimer), withObject: nil, afterDelay: 1)
+    }
     
 }
