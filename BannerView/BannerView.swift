@@ -27,7 +27,7 @@ public class BannerView: UIView {
         }
     }
     
-    public var duration: NSTimeInterval = 2.5
+    @IBInspectable public var duration: NSTimeInterval = 2.5
     
     public var carouselForSinglePage = false {
         didSet {
@@ -35,7 +35,7 @@ public class BannerView: UIView {
         }
     }
     
-    public var carouselAnimate = true
+   @IBInspectable public var carouselAnimate = true
     
     private var timer: NSTimer?
     
@@ -218,6 +218,46 @@ public class BannerView: UIView {
         
     }
     
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        addListening()
+    }
+    
+    required public init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        addListening()
+    }
+    
+    
+    deinit {
+        removeListening()
+    }
+    
+    private func addListening() {
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(BannerView.deviceOrientationDidChangeNotification(_:)), name: UIDeviceOrientationDidChangeNotification, object: nil)
+    }
+    
+    
+    private func removeListening() {
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+    }
+    
+    
+    @objc private func deviceOrientationDidChangeNotification(notification: NSNotification) {
+        
+        layout.itemSize = bounds.size
+        guard let cell = collectionView.visibleCells().first else {
+            return
+        }
+        
+        guard let indexPath = collectionView.indexPathForCell(cell) else {
+            return
+        }
+        collectionView.reloadData()
+        collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: false)
+    }
+    
     public override func didMoveToSuperview() {
         
         self .performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.01)
@@ -226,11 +266,8 @@ public class BannerView: UIView {
     
     public override func layoutSubviews() {
         super.layoutSubviews()
-        
-        guard  let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else {
-            return
-        }
         layout.itemSize = bounds.size
+        collectionView.reloadData()
     }
 
 }
@@ -263,7 +300,7 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
     
     public func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
         
-        if images.count == 1 {
+        if section == 1 {
             return
         }
         
