@@ -87,6 +87,7 @@ public class BannerView: UIView {
     public var images = [UIImage]() {
         didSet {
             pageControl.numberOfPages = images.count
+            pageControl.hidesForSinglePage = true
             collectionView.reloadData()
             scrollToMiddle()
         }
@@ -124,7 +125,7 @@ public class BannerView: UIView {
         
         do {
             addSubview(pageControl)
-            pageControl.rightAnchor.constraintEqualToAnchor(self.rightAnchor, constant: -8).active = true
+            pageControl.centerXAnchor.constraintEqualToAnchor(self.centerXAnchor).active = true
             pageControl.bottomAnchor.constraintEqualToAnchor(self.bottomAnchor, constant: -8).active = true
         }
         
@@ -137,6 +138,7 @@ public class BannerView: UIView {
     
     public override func layoutSubviews() {
         super.layoutSubviews()
+        
         guard  let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else {
             return
         }
@@ -179,16 +181,15 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
             return
         }
         
-        guard let cell = collectionView.visibleCells().first else {
-            return
-        }
-        
-        guard let indexPath =  collectionView.indexPathForCell(cell) else {
-            return
-        }
-        
-        
+        //避免出现闪烁
         delay(0.01) { [unowned self] in
+            guard let cell = self.collectionView.visibleCells().first else {
+                return
+            }
+            
+            guard let indexPath =  self.collectionView.indexPathForCell(cell) else {
+                return
+            }
             self.pageControl.currentPage = indexPath.item
             let middleIndexPath = NSIndexPath(forItem:  indexPath.item, inSection:  self.dynamicType.middleSection)
             self.collectionView.scrollToItemAtIndexPath(middleIndexPath, atScrollPosition: .None, animated: false)
