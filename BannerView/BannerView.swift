@@ -10,9 +10,7 @@ import UIKit
 
 
 @IBDesignable
-
 public extension UIView {
-    
     
 }
 
@@ -27,7 +25,19 @@ public class BannerView: UIView {
         }
     }
     
-    @IBInspectable public var duration: NSTimeInterval = 2.5
+   typealias DeletateCallback = (bannerView:BannerView, didSelectItem: Int) ->Void
+    
+   var deletateCallback: DeletateCallback?
+    
+    @IBInspectable public var duration: NSTimeInterval = 2.5 {
+        didSet {
+            if duration == oldValue  {
+                return
+            }
+            removeTimer()
+            addTimer()
+        }
+    }
     
     public var carouselForSinglePage = false {
         didSet {
@@ -59,15 +69,9 @@ public class BannerView: UIView {
         timer = nil
     }
     
-    
     @objc private func carousel() {
         
-        guard let cell = collectionView.visibleCells().first else {
-            return
-        }
-        
-        
-        guard let indexPath = collectionView.indexPathForCell(cell) else {
+        guard let indexPath = currentVisibleIndexPath() else {
             return
         }
         
@@ -76,28 +80,31 @@ public class BannerView: UIView {
             removeTimer()
         }
         
-        let item  = indexPath.item + 1
+        let item  = indexPath.item + self.dynamicType.section
         if item >= images.count  {
-            let middleIndexPath = NSIndexPath(forItem:  0 , inSection:  self.middleSection + 1)
-            self.collectionView.scrollToItemAtIndexPath(middleIndexPath, atScrollPosition: .None, animated: true)
-            pageControl.currentPage = 0
-            self.performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.25)
+            let middleIndexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection , inSection:  self.middleSection + self.dynamicType.section)
+            scrollToItemAtIndexPath(middleIndexPath, animated: true) {
+                self.performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.25)
+            }
             return
-            
         }
-        
         let middleIndexPath = NSIndexPath(forItem:  item , inSection:  self.middleSection)
-        self.collectionView.scrollToItemAtIndexPath(middleIndexPath, atScrollPosition: .None, animated: true)
-        pageControl.currentPage = item
+        scrollToItemAtIndexPath(middleIndexPath, animated: true, dosomething: nil)
     }
     
     public var scrollDirection: UICollectionViewScrollDirection = .Horizontal {
         didSet {
-            let cell = collectionView.visibleCells().first
-            let indexPath = collectionView.indexPathForCell(cell!)
-            layout.scrollDirection = scrollDirection
-            collectionView.reloadData()
-            collectionView.scrollToItemAtIndexPath(indexPath!, atScrollPosition: .None, animated: false)
+            
+            func layoutDirection() {
+                layout.scrollDirection = scrollDirection
+                collectionView.reloadData()
+            }
+            guard let indexPath = currentVisibleIndexPath() else {
+                layoutDirection()
+                return
+            }
+            layoutDirection()
+            scrollToItemAtIndexPath(indexPath, animated: false, dosomething: nil)
         }
     }
     
@@ -143,8 +150,8 @@ public class BannerView: UIView {
     
     private static let carouselSection = 3
     private static let section = 1
-    private static  let fristItemInMiddleSection = 0
-    private static  let reuseIdentifier = String(BannerViewCell)
+    private static let fristItemInMiddleSection = 0
+    private static let reuseIdentifier = String(BannerViewCell)
     private  var section: Int {
        return (carouselForSinglePage || images.count > self.dynamicType.section) ?
             self.dynamicType.carouselSection : self.dynamicType.section
@@ -155,30 +162,27 @@ public class BannerView: UIView {
     }
     
     private lazy var collectionView: UICollectionView = { [unowned self] in
-    
         let layout = UICollectionViewFlowLayout()
         layout.sectionInset = UIEdgeInsetsZero
-        layout.scrollDirection = .Horizontal
+        layout.scrollDirection = self.scrollDirection
         layout.minimumInteritemSpacing = 0
         layout.minimumLineSpacing = 0
         let view = UICollectionView(frame: CGRectZero, collectionViewLayout: layout)
-        view.delegate   = self
-        view.dataSource = self
+        view.delegate      = self
+        view.dataSource    = self
         view.pagingEnabled = true
-        view.bounces = false
-        view.showsVerticalScrollIndicator = false
+        view.bounces       = false
+        view.showsVerticalScrollIndicator   = false
         view.showsHorizontalScrollIndicator = false
         view.translatesAutoresizingMaskIntoConstraints = false
         view.registerClass(BannerViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
         return view
     }()
     
-    
     private var layout: UICollectionViewFlowLayout {
         
         return collectionView.collectionViewLayout as! UICollectionViewFlowLayout
     }
-    
     
     typealias DoSomething = Void ->Void
     
@@ -189,18 +193,21 @@ public class BannerView: UIView {
         }
     }
     
+    private func scrollToItemAtIndexPath(indexPath: NSIndexPath,animated: Bool,dosomething: DoSomething?){
+        collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: animated)
+        pageControl.currentPage = indexPath.item
+        dosomething?()
+    }
     
     @objc private func scrollToMiddle() {
-        
         let indexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection, inSection:  middleSection)
-        collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: false)
+        scrollToItemAtIndexPath(indexPath, animated: false, dosomething: nil)
     }
     
     override public func willMoveToSuperview(newSuperview: UIView?) {
         do {
             let views = ["collectionView":collectionView]
             addSubview(collectionView)
-            // flatMap 将二维数据转为一维数组
             let vhConstraints = [
                 NSLayoutConstraint.constraintsWithVisualFormat("V:|[collectionView]|", options: [], metrics: nil, views: views),
                 NSLayoutConstraint.constraintsWithVisualFormat("H:|[collectionView]|", options: [], metrics: nil, views: views)
@@ -215,7 +222,6 @@ public class BannerView: UIView {
             pageControl.centerXAnchor.constraintEqualToAnchor(self.centerXAnchor).active = true
             pageControl.bottomAnchor.constraintEqualToAnchor(self.bottomAnchor, constant: -8).active = true
         }
-        
     }
     
     
@@ -235,7 +241,9 @@ public class BannerView: UIView {
     }
     
     private func addListening() {
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(BannerView.deviceOrientationDidChangeNotification(_:)), name: UIDeviceOrientationDidChangeNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(BannerView.deviceOrientationDidChangeNotification(_:)),
+                                                         name: UIDeviceOrientationDidChangeNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(BannerView.applicationWillChangeStatusBarFrameNotification(_:)), name: UIApplicationWillChangeStatusBarFrameNotification, object: nil)
     }
     
     
@@ -243,19 +251,34 @@ public class BannerView: UIView {
         NSNotificationCenter.defaultCenter().removeObserver(self)
     }
     
+    private var rememberVisibleIndexPath: NSIndexPath?
+    
+    @objc private func applicationWillChangeStatusBarFrameNotification(notification: NSNotification) {
+        
+        guard let indexPath = currentVisibleIndexPath() else {
+            return
+        }
+        removeTimer()
+        rememberVisibleIndexPath = indexPath
+    }
     
     @objc private func deviceOrientationDidChangeNotification(notification: NSNotification) {
         
         layout.itemSize = bounds.size
-        guard let cell = collectionView.visibleCells().first else {
-            return
-        }
-        
-        guard let indexPath = collectionView.indexPathForCell(cell) else {
+        guard let indexPath = rememberVisibleIndexPath else {
             return
         }
         collectionView.reloadData()
-        collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: false)
+        scrollToItemAtIndexPath(indexPath, animated: false, dosomething: nil)
+        rememberVisibleIndexPath = nil
+        addTimer()
+    }
+    
+    private func currentVisibleIndexPath() ->NSIndexPath? {
+        guard let cell = collectionView.visibleCells().first else {
+            return  nil
+        }
+        return collectionView.indexPathForCell(cell)
     }
     
     public override func didMoveToSuperview() {
@@ -286,31 +309,29 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
     }
     
     public func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCellWithReuseIdentifier(self.dynamicType.reuseIdentifier, forIndexPath: indexPath) as?  BannerViewCell else {
+        guard let cell = collectionView.dequeueReusableCellWithReuseIdentifier(self.dynamicType.reuseIdentifier,
+                                                                               forIndexPath: indexPath) as?  BannerViewCell else {
             return UICollectionViewCell()
         }
         cell.imageView.image = images[indexPath.item]
         return cell
     }
     
+    
     public func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
         
-        print(indexPath)
+        deletateCallback?(bannerView: self, didSelectItem: indexPath.item)
     }
     
     public func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
         
-        if section == 1 {
+        if section == self.dynamicType.section {
             return
         }
         
-        //避免出现闪烁
         delay(0.01) { [unowned self] in
-            guard let cell = self.collectionView.visibleCells().first else {
-                return
-            }
             
-            guard let indexPath =  self.collectionView.indexPathForCell(cell) else {
+            guard let indexPath =  self.currentVisibleIndexPath() else {
                 return
             }
             self.pageControl.currentPage = indexPath.item
