@@ -81,16 +81,8 @@ public class BannerView: UIView {
         }
         
         let item  = indexPath.item + self.dynamicType.section
-        if item >= images.count  {
-            let middleIndexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection ,
-                                              inSection:  self.middleSection + self.dynamicType.section)
-            scrollToItemAtIndexPath(middleIndexPath, animated: true) {
-                self.performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.25)
-            }
-            return
-        }
-        let middleIndexPath = NSIndexPath(forItem:  item , inSection:  self.middleSection)
-        scrollToItemAtIndexPath(middleIndexPath, animated: true, dosomething: nil)
+        let middleIndexPath = NSIndexPath(forItem:  item, inSection:  indexPath.section)
+        scrollToItemAtIndexPath(middleIndexPath, animated: true)
     }
     
     public var scrollDirection: UICollectionViewScrollDirection = .Horizontal {
@@ -105,16 +97,28 @@ public class BannerView: UIView {
                 return
             }
             layoutDirection()
-            scrollToItemAtIndexPath(indexPath, animated: false, dosomething: nil)
+            scrollToItemAtIndexPath(indexPath, animated: false)
         }
     }
     
-    private(set) lazy var pageControl: UIPageControl = {
+    private(set) lazy var pageControl: UIPageControl = { [unowned self] in
        let pageControl =  UIPageControl()
         pageControl.translatesAutoresizingMaskIntoConstraints = false
+        pageControl.addTarget(self, action: #selector(BannerView.valueChange(_:)), forControlEvents: .ValueChanged)
         return pageControl
     }()
     
+    @objc private func valueChange(pageControl: UIPageControl) {
+        
+        removeTimer()
+        do {
+            let indexPath = currentVisibleIndexPath()!
+            let item  = indexPath.item + self.dynamicType.section
+            let middleIndexPath = NSIndexPath(forItem:  item, inSection:  indexPath.section)
+            scrollToItemAtIndexPath(middleIndexPath, animated: true)
+        }
+        addTimer()
+    }
     
    private class BannerViewCell: UICollectionViewCell {
     
@@ -194,15 +198,30 @@ public class BannerView: UIView {
         }
     }
     
-    private func scrollToItemAtIndexPath(indexPath: NSIndexPath,animated: Bool,dosomething: DoSomething?){
-        collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: animated)
-        pageControl.currentPage = indexPath.item
-        dosomething?()
+    private func scrollToItemAtIndexPath(indexPath: NSIndexPath,animated: Bool){
+        
+        func scrollAtIndexPath(indexPath: NSIndexPath) {
+            collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: animated)
+            pageControl.currentPage = indexPath.item
+        }
+        
+        if section == self.dynamicType.section {
+            return
+        }
+       
+        if indexPath.item >= images.count  {
+            let middleIndexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection ,
+                                              inSection:  indexPath.section + self.dynamicType.section)
+            scrollAtIndexPath(middleIndexPath)
+            self.performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.25)
+            return
+        }
+        scrollAtIndexPath(indexPath)
     }
     
     @objc private func scrollToMiddle() {
         let indexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection, inSection:  middleSection)
-        scrollToItemAtIndexPath(indexPath, animated: false, dosomething: nil)
+        scrollToItemAtIndexPath(indexPath, animated: false)
     }
     
     override public func willMoveToSuperview(newSuperview: UIView?) {
@@ -270,7 +289,7 @@ public class BannerView: UIView {
             return
         }
         collectionView.reloadData()
-        scrollToItemAtIndexPath(indexPath, animated: false, dosomething: nil)
+        scrollToItemAtIndexPath(indexPath, animated: false)
         rememberVisibleIndexPath = nil
         addTimer()
     }
@@ -335,9 +354,8 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
             guard let indexPath =  self.currentVisibleIndexPath() else {
                 return
             }
-            self.pageControl.currentPage = indexPath.item
             let middleIndexPath = NSIndexPath(forItem:  indexPath.item, inSection:  self.middleSection)
-            self.collectionView.scrollToItemAtIndexPath(middleIndexPath, atScrollPosition: .None, animated: false)
+            self.scrollToItemAtIndexPath(middleIndexPath, animated: false)
         }
         
     }
