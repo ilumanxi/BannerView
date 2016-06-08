@@ -25,7 +25,7 @@ public class BannerView: UIView {
         }
     }
     
-   typealias DeletateCallback = (bannerView:BannerView, didSelectItem: Int) ->Void
+   typealias DeletateCallback = (bannerView: BannerView, didSelectItem: Int) ->Void
     
    var deletateCallback: DeletateCallback?
     
@@ -82,7 +82,8 @@ public class BannerView: UIView {
         
         let item  = indexPath.item + self.dynamicType.section
         if item >= images.count  {
-            let middleIndexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection , inSection:  self.middleSection + self.dynamicType.section)
+            let middleIndexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection ,
+                                              inSection:  self.middleSection + self.dynamicType.section)
             scrollToItemAtIndexPath(middleIndexPath, animated: true) {
                 self.performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.25)
             }

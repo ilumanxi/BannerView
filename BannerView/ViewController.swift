@@ -26,7 +26,7 @@ class ViewController: UIViewController {
             
             bannerView.pageControl.currentPageIndicatorTintColor = UIColor.purpleColor()
             bannerView.pageControl.pageIndicatorTintColor = UIColor.blueColor()
-            bannerView.deletateCallback = { (bannerView:BannerView, didSelectItem: Int) in
+            bannerView.deletateCallback = { (bannerView: BannerView, didSelectItem: Int) in
                 
                 print(didSelectItem)
             }
