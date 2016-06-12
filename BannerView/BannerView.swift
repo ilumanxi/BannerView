@@ -8,7 +8,6 @@
 
 import UIKit
 
-
 @IBDesignable
 public extension UIView {
     
@@ -29,7 +28,7 @@ public class BannerView: UIView {
     
    var deletateCallback: DeletateCallback?
     
-    @IBInspectable public var duration: NSTimeInterval = 2.5 {
+   @IBInspectable  public var  duration: NSTimeInterval = 2.5 {
         didSet {
             if duration == oldValue  {
                 return
@@ -39,7 +38,7 @@ public class BannerView: UIView {
         }
     }
     
-    public var carouselForSinglePage = false {
+    @IBInspectable public var carouselForSinglePage = false {
         didSet {
             collectionView.reloadData()
         }
@@ -50,18 +49,15 @@ public class BannerView: UIView {
     private var timer: NSTimer?
     
     @objc private func addTimer() {
-        
         if let _ = timer {
             return
         }
-        
         timer = NSTimer(timeInterval: duration, target: self, selector: #selector(BannerView.carousel), userInfo: nil, repeats: true)
         NSRunLoop.currentRunLoop().addTimer(timer!, forMode: NSRunLoopCommonModes)
         timer?.fire()
     }
     
     private func removeTimer() {
-        
         guard let _ = timer else {
             return
         }
@@ -70,7 +66,6 @@ public class BannerView: UIView {
     }
     
     @objc private func carousel() {
-        
         guard let indexPath = currentVisibleIndexPath() else {
             return
         }
@@ -80,14 +75,13 @@ public class BannerView: UIView {
             removeTimer()
         }
         
-        let item  = indexPath.item + self.dynamicType.section
+        let item  = indexPath.item + Section.noncarouselSection
         let middleIndexPath = NSIndexPath(forItem:  item, inSection:  indexPath.section)
         scrollToItemAtIndexPath(middleIndexPath, animated: true)
     }
     
     public var scrollDirection: UICollectionViewScrollDirection = .Horizontal {
         didSet {
-            
             func layoutDirection() {
                 layout.scrollDirection = scrollDirection
                 collectionView.reloadData()
@@ -113,7 +107,7 @@ public class BannerView: UIView {
         removeTimer()
         do {
             let indexPath = currentVisibleIndexPath()!
-            let item  = indexPath.item + self.dynamicType.section
+            let item  = indexPath.item + Section.noncarouselSection
             let middleIndexPath = NSIndexPath(forItem:  item, inSection:  indexPath.section)
             scrollToItemAtIndexPath(middleIndexPath, animated: true)
         }
@@ -121,7 +115,6 @@ public class BannerView: UIView {
     }
     
    private class BannerViewCell: UICollectionViewCell {
-    
         lazy var imageView: UIImageView = {
             let view = UIImageView()
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -150,20 +143,22 @@ public class BannerView: UIView {
             NSLayoutConstraint.activateConstraints(vhConstraints)
             
         }
-
     }
     
-    private static let carouselSection = 3
-    private static let section = 1
-    private static let fristItemInMiddleSection = 0
+    private struct Section {
+         static let carouselSection = 3
+         static let noncarouselSection = 1
+         static let fristItemInMiddleSection = 0
+    }
+    
     private static let reuseIdentifier = String(BannerViewCell)
     private  var section: Int {
-       return (carouselForSinglePage || images.count > self.dynamicType.section) ?
-            self.dynamicType.carouselSection : self.dynamicType.section
+       return (carouselForSinglePage || images.count > Section.noncarouselSection) ?
+            Section.carouselSection : Section.noncarouselSection
     }
     private  var middleSection: Int {
         
-        return (section == self.dynamicType.section) ? self.dynamicType.section : (section / 2)
+        return (section == Section.noncarouselSection) ? Section.noncarouselSection : (section / 2)
     }
     
     private lazy var collectionView: UICollectionView = { [unowned self] in
@@ -179,6 +174,7 @@ public class BannerView: UIView {
         view.bounces       = false
         view.showsVerticalScrollIndicator   = false
         view.showsHorizontalScrollIndicator = false
+        view.backgroundColor                = UIColor.clearColor()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.registerClass(BannerViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
         return view
@@ -199,28 +195,26 @@ public class BannerView: UIView {
     }
     
     private func scrollToItemAtIndexPath(indexPath: NSIndexPath,animated: Bool){
-        
         func scrollAtIndexPath(indexPath: NSIndexPath) {
             collectionView.scrollToItemAtIndexPath(indexPath, atScrollPosition: .None, animated: animated)
             pageControl.currentPage = indexPath.item
         }
-        
-        if section == self.dynamicType.section {
-            return
-        }
-       
         if indexPath.item >= images.count  {
-            let middleIndexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection ,
-                                              inSection:  indexPath.section + self.dynamicType.section)
+            let middleIndexPath = NSIndexPath(forItem:  Section.fristItemInMiddleSection ,
+                                            inSection:  indexPath.section + Section.noncarouselSection)
             scrollAtIndexPath(middleIndexPath)
             self.performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.25)
-            return
+        }else if indexPath.section >= section {
+            let middleIndexPath = NSIndexPath(forItem: indexPath.item ,
+                                            inSection: middleSection)
+            scrollAtIndexPath(middleIndexPath)
+        }else {
+            scrollAtIndexPath(indexPath)
         }
-        scrollAtIndexPath(indexPath)
     }
     
     @objc private func scrollToMiddle() {
-        let indexPath = NSIndexPath(forItem:  self.dynamicType.fristItemInMiddleSection, inSection:  middleSection)
+        let indexPath = NSIndexPath(forItem:  Section.fristItemInMiddleSection, inSection:  middleSection)
         scrollToItemAtIndexPath(indexPath, animated: false)
     }
     
@@ -244,7 +238,6 @@ public class BannerView: UIView {
         }
     }
     
-    
     override init(frame: CGRect) {
         super.init(frame: frame)
         addListening()
@@ -255,7 +248,6 @@ public class BannerView: UIView {
         addListening()
     }
     
-    
     deinit {
         removeListening()
     }
@@ -265,7 +257,6 @@ public class BannerView: UIView {
                                                          name: UIDeviceOrientationDidChangeNotification, object: nil)
         NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(BannerView.applicationWillChangeStatusBarFrameNotification(_:)), name: UIApplicationWillChangeStatusBarFrameNotification, object: nil)
     }
-    
     
     private func removeListening() {
         NSNotificationCenter.defaultCenter().removeObserver(self)
@@ -283,7 +274,6 @@ public class BannerView: UIView {
     }
     
     @objc private func deviceOrientationDidChangeNotification(notification: NSNotification) {
-        
         layout.itemSize = bounds.size
         guard let indexPath = rememberVisibleIndexPath else {
             return
@@ -302,7 +292,6 @@ public class BannerView: UIView {
     }
     
     public override func didMoveToSuperview() {
-        
         self .performSelector(#selector(BannerView.scrollToMiddle), withObject: nil, afterDelay: 0.01)
         addTimer()
     }
@@ -337,20 +326,16 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
         return cell
     }
     
-    
     public func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
         
         deletateCallback?(bannerView: self, didSelectItem: indexPath.item)
     }
     
     public func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
-        
-        if section == self.dynamicType.section {
+        if section == Section.noncarouselSection {
             return
         }
-        
         delay(0.01) { [unowned self] in
-            
             guard let indexPath =  self.currentVisibleIndexPath() else {
                 return
             }
@@ -366,9 +351,7 @@ extension BannerView: UICollectionViewDataSource,UICollectionViewDelegate {
     }
     
     public func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        
         NSObject .cancelPreviousPerformRequestsWithTarget(self, selector: #selector(BannerView.addTimer), object: nil)
         self.performSelector(#selector(BannerView.addTimer), withObject: nil, afterDelay: 1)
     }
-    
 }
