@@ -218,26 +218,6 @@ public class BannerView: UIView {
         scrollToItemAtIndexPath(indexPath, animated: false)
     }
     
-    override public func willMove(toSuperview newSuperview: UIView?) {
-        do {
-            let views = ["collectionView":collectionView]
-            addSubview(collectionView)
-            let vhConstraints = [
-                NSLayoutConstraint.constraints(withVisualFormat: "V:|[collectionView]|", options: [], metrics: nil, views: views),
-                NSLayoutConstraint.constraints(withVisualFormat: "H:|[collectionView]|", options: [], metrics: nil, views: views)
-                ].flatMap { (constraints) -> [NSLayoutConstraint] in
-                return constraints
-            }
-            NSLayoutConstraint.activate(vhConstraints)
-        }
-        
-        do {
-            addSubview(pageControl)
-            pageControl.centerXAnchor.constraint(equalTo: self.centerXAnchor).isActive = true
-            pageControl.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -8).isActive = true
-        }
-    }
-    
     override init(frame: CGRect) {
         super.init(frame: frame)
         addListening()
@@ -291,11 +271,34 @@ public class BannerView: UIView {
         return collectionView.indexPath(for: cell)
     }
     
+    override public func willMove(toSuperview newSuperview: UIView?) {
+        do {
+            let views = ["collectionView":collectionView]
+            addSubview(collectionView)
+            let vhConstraints = [
+                NSLayoutConstraint.constraints(withVisualFormat: "V:|[collectionView]|", options: [], metrics: nil, views: views),
+                NSLayoutConstraint.constraints(withVisualFormat: "H:|[collectionView]|", options: [], metrics: nil, views: views)
+                ].flatMap { (constraints) -> [NSLayoutConstraint] in
+                    return constraints
+            }
+            NSLayoutConstraint.activate(vhConstraints)
+        }
+        
+        do {
+            addSubview(pageControl)
+            pageControl.centerXAnchor.constraint(equalTo: self.centerXAnchor).isActive = true
+            pageControl.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -8).isActive = true
+        }
+
+    }
+    
     public override func didMoveToSuperview() {
-        self .perform(#selector(BannerView.scrollToMiddle), with: nil, afterDelay: 0.01)
         addTimer()
     }
     
+    public override func willRemoveSubview(_ subview: UIView) {
+        removeTimer()
+    }
     public override func layoutSubviews() {
         super.layoutSubviews()
         layout.itemSize = bounds.size
