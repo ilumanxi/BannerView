@@ -24,8 +24,8 @@ class ViewController: UIViewController {
             
             bannerView.images = images
             
-            bannerView.pageControl.currentPageIndicatorTintColor = UIColor.greenColor()
-            bannerView.pageControl.pageIndicatorTintColor = UIColor.orangeColor()
+            bannerView.pageControl.currentPageIndicatorTintColor = UIColor.green()
+            bannerView.pageControl.pageIndicatorTintColor = UIColor.orange()
             bannerView.deletateCallback = { (bannerView: BannerView, didSelectItem: Int) in
                 
                 print(didSelectItem)
@@ -41,15 +41,9 @@ class ViewController: UIViewController {
 
    
     
-    override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         
-        
-        if bannerView.scrollDirection == .Horizontal {
-            bannerView.scrollDirection = .Vertical
-        }else {
-            bannerView.scrollDirection = .Horizontal
-        }
-        
+        bannerView.scrollDirection = (bannerView.scrollDirection == .horizontal) ? .vertical : .horizontal
         
     }
 
