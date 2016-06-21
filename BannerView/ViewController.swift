@@ -14,37 +14,26 @@ class ViewController: UIViewController {
     @IBOutlet weak var bannerView: BannerView! {
         
         didSet {
-            
-            var images = [UIImage]()
-            
-            for index in 0...3 {
+        
+            bannerView.images =  (0...3).map { (index) -> UIImage in
                 
-                images.append(UIImage(named: "image\(index)")!)
+                return UIImage(named: "image\(index)")!
             }
-            
-            bannerView.images = images
             
             bannerView.pageControl.currentPageIndicatorTintColor = UIColor.green()
             bannerView.pageControl.pageIndicatorTintColor = UIColor.orange()
             bannerView.deletateCallback = { (bannerView: BannerView, didSelectItem: Int) in
                 
-                print(didSelectItem)
+                print("bannerView\(didSelectItem)" )
             }
         }
         
     }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
-    }
-
-   
     
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         
         bannerView.scrollDirection = (bannerView.scrollDirection == .horizontal) ? .vertical : .horizontal
-        
     }
 
 
