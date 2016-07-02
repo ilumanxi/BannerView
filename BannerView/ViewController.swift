@@ -12,20 +12,11 @@ class ViewController: UIViewController {
     
     
     @IBOutlet weak var bannerView: BannerView! {
-        
         didSet {
-        
-            bannerView.images =  (0...3).map { (index) -> UIImage in
-                
-                return UIImage(named: "image\(index)")!
-            }
-            
+            bannerView.images = (0...3).map { UIImage(named: "image\($0)")!}
             bannerView.pageControl.currentPageIndicatorTintColor = UIColor.green()
             bannerView.pageControl.pageIndicatorTintColor = UIColor.orange()
-            bannerView.deletateCallback = { (bannerView: BannerView, didSelectItem: Int) in
-                
-                print("bannerView\(didSelectItem)" )
-            }
+            bannerView.deletateCallback = { print("\($0)---\($1)" ) }
         }
         
     }
