@@ -13,8 +13,9 @@ public extension UIView { }
 
 public class BannerView: UIView {
     
-    public var images = [UIImage]() {
+    public var images: [UIImage]! {
         didSet {
+            assert(images.count > 0, "images count cannot be zero")
             pageControl.numberOfPages = images.count
             pageControl.hidesForSinglePage = !carouselForSinglePage
             collectionView.reloadData()
@@ -49,7 +50,7 @@ public class BannerView: UIView {
     }
     
     private func removeTimer() {
-        if case nil = timer  {  return }
+        if case nil = timer  { return }
         timer?.invalidate()
         timer = nil
     }
