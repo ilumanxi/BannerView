@@ -14,8 +14,8 @@ class ViewController: UIViewController {
     @IBOutlet weak var bannerView: BannerView! {
         didSet {
             bannerView.images = (0...3).flatMap { UIImage(named: "image\($0)")}
-            bannerView.pageControl.currentPageIndicatorTintColor = UIColor.green()
-            bannerView.pageControl.pageIndicatorTintColor = UIColor.orange()
+            bannerView.pageControl.currentPageIndicatorTintColor = UIColor.green
+            bannerView.pageControl.pageIndicatorTintColor = UIColor.orange
             bannerView.deletateCallback = { print("\($0)---\($1)" ) }
         }
         
